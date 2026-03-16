@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhishGuard - AI Phishing Detection</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0a0a;
+            overflow-x: hidden;
+        }
+        
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        /* Animated Background */
+        .cyber-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 255, 100, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 100, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .scan-line {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00ff64, transparent);
+            animation: scan 3s linear infinite;
+            opacity: 0.5;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        @keyframes scan {
+            0% { transform: translateY(-100vh); }
+            100% { transform: translateY(100vh); }
+        }
+        
+        /* Glitch Effect */
+        .glitch {
+            position: relative;
+            animation: glitch-skew 1s infinite;
+        }
+        
+        @keyframes glitch-skew {
+            0% { transform: skew(0deg); }
+            10% { transform: skew(-2deg); }
+            20% { transform: skew(2deg); }
+            30% { transform: skew(0deg); }
+            100% { transform: skew(0deg); }
+        }
+        
+        /* Upload Zone Animation */
+        .upload-zone {
+            background: linear-gradient(135deg, rgba(20, 20, 20, 0.9), rgba(30, 30, 30, 0.9));
+            border: 2px dashed #333;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: #00ff64;
+            background: linear-gradient(135deg, rgba(0, 255, 100, 0.1), rgba(0, 255, 100, 0.05));
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(0, 255, 100, 0.2);
+        }
+        
+        /* Result Cards */
+        .result-card {
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transform: translateY(20px);
+            opacity: 0;
+            animation: slideUp 0.6s ease forwards;
+        }
+        
+        @keyframes slideUp {
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .danger-pulse {
+            animation: dangerPulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes dangerPulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.5); }
+            50% { box-shadow: 0 0 40px rgba(239, 68, 68, 0.8); }
+        }
+        
+        .safe-pulse {
+            animation: safePulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes safePulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.5); }
+            50% { box-shadow: 0 0 40px rgba(34, 197, 94, 0.8); }
+        }
+        
+        /* Progress Bar */
+        .progress-bar {
+            background: linear-gradient(90deg, #00ff64 0%, #00ccff 100%);
+            background-size: 200% 100%;
+            animation: gradientFlow 2s linear infinite;
+        }
+        
+        @keyframes gradientFlow {
+            0% { background-position: 100% 0; }
+            100% { background-position: -100% 0; }
+        }
+        
+        /* Typing Effect */
+        .typing-text::after {
+            content: '|';
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        
+        /* Floating Particles */
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #00ff64;
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: float 10s infinite ease-in-out;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+            10% { opacity: 0.3; }
+            90% { opacity: 0.3; }
+            100% { transform: translateY(-100vh) translateX(50px); }
+        }
+        
+        /* Risk Meter */
+        .risk-meter {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .risk-meter::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: conic-gradient(from 0deg, #22c55e 0deg, #eab308 90deg, #ef4444 180deg);
+            border-radius: 50%;
+            mask: radial-gradient(transparent 60%, black 61%);
+            -webkit-mask: radial-gradient(transparent 60%, black 61%);
+        }
+        
+        .risk-needle {
+            transition: transform 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        /* Highlight Animation */
+        .highlight-word {
+            background: rgba(239, 68, 68, 0.3);
+            border-bottom: 2px solid #ef4444;
+            padding: 0 4px;
+            border-radius: 4px;
+            animation: highlightPulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes highlightPulse {
+            0%, 100% { background: rgba(239, 68, 68, 0.3); }
+            50% { background: rgba(239, 68, 68, 0.5); }
+        }
+        
+        /* Card Hover Effects */
+        .tip-card {
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .tip-card:hover {
+            transform: translateY(-5px);
+            border-color: #00ff64;
+            box-shadow: 0 10px 30px rgba(0, 255, 100, 0.2);
+        }
+        
+        /* Scanner Effect */
+        .scanner-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #00ff64;
+            box-shadow: 0 0 10px #00ff64, 0 0 20px #00ff64;
+            animation: scanImage 2s ease-in-out infinite;
+            display: none;
+        }
+        
+        @keyframes scanImage {
+            0% { top: 0; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+        
+        .scanning .scanner-overlay {
+            display: block;
+        }
+        
+        /* Binary Rain Effect */
+        .binary-rain {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.05;
+        }
+    </style>
+</head>
+<body class="text-gray-100 min-h-screen relative">
+    <!-- Background Effects -->
+    <div class="cyber-grid"></div>
+    <div class="scan-line"></div>
+    <canvas id="binaryRain" class="binary-rain"></canvas>
+    
+    <!-- Floating Particles -->
+    <div id="particles"></div>
+
+    <!-- Navigation -->
+    <nav class="relative z-50 border-b border-gray-800 bg-black/50 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-green-400 to-blue-500 rounded-lg flex items-center justify-center glitch">
+                        <i data-lucide="shield-check" class="w-6 h-6 text-black"></i>
+                    </div>
+                    <span class="text-xl font-bold tracking-tight mono">
+                        <span class="text-green-400">PHISH</span><span class="text-white">GUARD</span>
+                        <span class="text-xs text-gray-500 ml-2 font-normal">AI DETECTION v2.0</span>
+                    </span>
+                </div>
+                <div class="hidden md:flex items-center gap-6 text-sm text-gray-400">
+                    <span class="flex items-center gap-2">
+                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                        System Online
+                    </span>
+                    <span class="mono">SECURE_CONNECTION</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative z-10 pt-20 pb-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div class="text-center mb-16">
+            <div class="inline-block mb-4 px-4 py-1 rounded-full bg-green-500/10 border border-green-500/30 text-green-400 text-sm mono">
+                CYBERSECURITY AWARENESS TOOL
+            </div>
+            <h1 class="text-5xl md:text-7xl font-bold mb-6 leading-tight">
+                Detect <span class="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500 glitch">Phishing</span><br>
+                Before It Detects You
+            </h1>
+            <p class="text-xl text-gray-400 max-w-2xl mx-auto mb-8 typing-text" id="typingText">
+                Upload an email screenshot and let our AI analyze it for phishing indicators
+            </p>
+        </div>
+
+        <!-- Main Detection Interface -->
+        <div class="max-w-4xl mx-auto">
+            <!-- Upload Zone -->
+            <div id="uploadZone" class="upload-zone rounded-2xl p-12 text-center cursor-pointer relative overflow-hidden group">
+                <input type="file" id="fileInput" class="hidden" accept="image/*">
+                
+                <div class="relative z-10">
+                    <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-gray-800 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                        <i data-lucide="upload-cloud" class="w-10 h-10 text-green-400"></i>
+                    </div>
+                    <h3 class="text-2xl font-semibold mb-2">Drop your email screenshot here</h3>
+                    <p class="text-gray-400 mb-4">or click to browse files</p>
+                    <div class="flex items-center justify-center gap-2 text-sm text-gray-500 mono">
+                        <i data-lucide="image" class="w-4 h-4"></i>
+                        <span>Supports: PNG, JPG, JPEG, WEBP</span>
+                    </div>
+                </div>
+                
+                <!-- Preview Container -->
+                <div id="previewContainer" class="hidden mt-6 relative rounded-lg overflow-hidden border border-gray-700">
+                    <img id="imagePreview" class="max-h-64 mx-auto object-contain" alt="Preview">
+                    <div class="scanner-overlay"></div>
+                    <button id="removeImage" class="absolute top-2 right-2 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Analyze Button -->
+            <div class="mt-6 text-center">
+                <button id="analyzeBtn" disabled class="group relative inline-flex items-center gap-3 px-8 py-4 bg-gray-800 text-gray-500 rounded-xl font-semibold text-lg transition-all duration-300 cursor-not-allowed overflow-hidden">
+                    <span class="relative z-10 flex items-center gap-3">
+                        <i data-lucide="scan-line" class="w-5 h-5"></i>
+                        <span id="analyzeText">SCAN EMAIL</span>
+                    </span>
+                    <div class="absolute inset-0 bg-gradient-to-r from-green-500 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </button>
+            </div>
+
+            <!-- Loading State -->
+            <div id="loadingState" class="hidden mt-8">
+                <div class="bg-gray-900/50 rounded-xl p-6 border border-gray-800">
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-sm mono text-green-400">ANALYZING...</span>
+                        <span id="progressPercent" class="text-sm mono text-green-400">0%</span>
+                    </div>
+                    <div class="h-2 bg-gray-800 rounded-full overflow-hidden">
+                        <div id="progressBar" class="progress-bar h-full w-0 transition-all duration-300"></div>
+                    </div>
+                    <div id="analysisSteps" class="mt-4 space-y-2 text-sm text-gray-400 mono">
+                        <div class="flex items-center gap-2 step" data-step="ocr">
+                            <i data-lucide="loader" class="w-4 h-4 animate-spin"></i>
+                            <span>Extracting text via OCR...</span>
+                        </div>
+                        <div class="flex items-center gap-2 step hidden" data-step="pattern">
+                            <i data-lucide="loader" class="w-4 h-4 animate-spin"></i>
+                            <span>Scanning for phishing patterns...</span>
+                        </div>
+                        <div class="flex items-center gap-2 step hidden" data-step="ml">
+                            <i data-lucide="loader" class="w-4 h-4 animate-spin"></i>
+                            <span>Running ML classification...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div id="resultsSection" class="hidden mt-8 space-y-6">
+                <!-- Main Result Card -->
+                <div id="resultCard" class="result-card rounded-2xl p-8 text-center relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-br opacity-10" id="resultGradient"></div>
+                    <div class="relative z-10">
+                        <div id="resultIcon" class="w-24 h-24 mx-auto mb-4 rounded-full flex items-center justify-center text-4xl">
+                            <!-- Icon injected by JS -->
+                        </div>
+                        <h2 id="resultTitle" class="text-3xl font-bold mb-2"></h2>
+                        <p id="resultSubtitle" class="text-gray-400 mb-6"></p>
+                        
+                        <!-- Risk Score -->
+                        <div class="flex justify-center mb-6">
+                            <div class="relative w-32 h-32">
+                                <svg class="w-full h-full transform -rotate-90">
+                                    <circle cx="64" cy="64" r="56" stroke="currentColor" stroke-width="8" fill="none" class="text-gray-800"/>
+                                    <circle id="riskCircle" cx="64" cy="64" r="56" stroke="currentColor" stroke-width="8" fill="none" 
+                                            stroke-dasharray="351.86" stroke-dashoffset="351.86" stroke-linecap="round"
+                                            class="transition-all duration-1000 ease-out"/>
+                                </svg>
+                                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                    <span id="riskScore" class="text-3xl font-bold mono">0%</span>
+                                    <span class="text-xs text-gray-500">RISK</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detected Indicators -->
+                <div class="result-card bg-gray-900/50 rounded-xl p-6 border border-gray-800" style="animation-delay: 0.1s">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <i data-lucide="alert-triangle" class="w-5 h-5 text-yellow-500"></i>
+                        Detected Indicators
+                    </h3>
+                    <ul id="indicatorsList" class="space-y-3">
+                        <!-- Indicators injected by JS -->
+                    </ul>
+                </div>
+
+                <!-- Extracted Text -->
+                <div class="result-card bg-gray-900/50 rounded-xl p-6 border border-gray-800" style="animation-delay: 0.2s">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <i data-lucide="file-text" class="w-5 h-5 text-blue-500"></i>
+                        Extracted Content Analysis
+                    </h3>
+                    <div id="extractedText" class="bg-black/30 rounded-lg p-4 mono text-sm text-gray-300 leading-relaxed overflow-x-auto max-h-64 overflow-y-auto">
+                        <!-- Text injected by JS -->
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="result-card flex gap-4 justify-center" style="animation-delay: 0.3s">
+                    <button onclick="resetAnalysis()" class="px-6 py-3 bg-gray-800 hover:bg-gray-700 rounded-lg font-medium transition-colors flex items-center gap-2">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        Scan Another
+                    </button>
+                    <button onclick="showDetails()" class="px-6 py-3 bg-green-600 hover:bg-green-500 rounded-lg font-medium transition-colors flex items-center gap-2">
+                        <i data-lucide="info" class="w-4 h-4"></i>
+                        Learn More
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Educational Section -->
+    <section class="relative z-10 py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-gray-800">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold mb-4">Phishing <span class="text-green-400">Awareness</span></h2>
+            <p class="text-gray-400">Learn to identify common phishing tactics</p>
+        </div>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Tip Cards -->
+            <div class="tip-card bg-gray-900/30 rounded-xl p-6 backdrop-blur-sm">
+                <div class="w-12 h-12 bg-red-500/20 rounded-lg flex items-center justify-center mb-4">
+                    <i data-lucide="zap" class="w-6 h-6 text-red-400"></i>
+                </div>
+                <h3 class="font-semibold mb-2">Urgency Tactics</h3>
+                <p class="text-sm text-gray-400">Phishing emails often create false urgency like "Your account will be suspended" or "Immediate action required" to pressure you into acting without thinking.</p>
+            </div>
+
+            <div class="tip-card bg-gray-900/30 rounded-xl p-6 backdrop-blur-sm">
+                <div class="w-12 h-12 bg-yellow-500/20 rounded-lg flex items-center justify-center mb-4">
+                    <i data-lucide="link" class="w-6 h-6 text-yellow-400"></i>
+                </div>
+                <h3 class="font-semibold mb-2">Suspicious Links</h3>
+                <p class="text-sm text-gray-400">Hover over links to check the actual URL. Look for misspelled domains, unusual subdomains, or HTTP instead of HTTPS protocols.</p>
+            </div>
+
+            <div class="tip-card bg-gray-900/30 rounded-xl p-6 backdrop-blur-sm">
+                <div class="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center mb-4">
+                    <i data-lucide="user-x" class="w-6 h-6 text-blue-400"></i>
+                </div>
+                <h3 class="font-semibold mb-2">Generic Greetings</h3>
+                <p class="text-sm text-gray-400">Legitimate companies usually address you by name. Be wary of emails starting with "Dear Customer" or "Dear User."</p>
+            </div>
+
+            <div class="tip-card bg-gray-900/30 rounded-xl p-6 backdrop-blur-sm">
+                <div class="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mb-4">
+                    <i data-lucide="lock" class="w-6 h-6 text-purple-400"></i>
+                </div>
+                <h3 class="font-semibold mb-2">Credential Requests</h3>
+                <p class="text-sm text-gray-400">No legitimate company will ask for your password, PIN, or full social security number via email.</p>
+            </div>
+
+            <div class="tip-card bg-gray-900/30 rounded-xl p-6 backdrop-blur-sm">
+                <div class="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center mb-4">
+                    <i data-lucide="paperclip" class="w-6 h-6 text-orange-400"></i>
+                </div>
+                <h3 class="font-semibold mb-2">Unexpected Attachments</h3>
+                <p class="text-sm text-gray-400">Be cautious of unexpected attachments, especially executable files (.exe), zip files, or Office documents with macros.</p>
+            </div>
+
+            <div class="tip-card bg-gray-900/30 rounded-xl p-6 backdrop-blur-sm">
+                <div class="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center mb-4">
+                    <i data-lucide="gift" class="w-6 h-6 text-green-400"></i>
+                </div>
+                <h3 class="font-semibold mb-2">Too Good To Be True</h3>
+                <p class="text-sm text-gray-400">If an offer seems too good to be true (free iPhones, lottery wins, inheritances), it probably is. Verify independently.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Examples Section -->
+    <section class="relative z-10 py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-gray-800">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold mb-4">Common <span class="text-red-400">Phishing</span> Examples</h2>
+            <p class="text-gray-400">Test your knowledge with these real-world scenarios</p>
+        </div>
+
+        <div class="space-y-6">
+            <!-- Example 1 -->
+            <div class="bg-gray-900/50 rounded-xl p-6 border border-red-500/30 hover:border-red-500/60 transition-colors cursor-pointer group" onclick="loadExample('urgent')">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
+                            <i data-lucide="mail-warning" class="w-5 h-5 text-red-400"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold">Account Suspension Urgency</h3>
+                            <p class="text-sm text-gray-400">Bank impersonation</p>
+                        </div>
+                    </div>
+                    <span class="px-3 py-1 bg-red-500/20 text-red-400 text-xs rounded-full mono">HIGH RISK</span>
+                </div>
+                <p class="text-sm text-gray-300 mb-3">"Your account has been locked due to suspicious activity. Click here immediately to verify your identity or your account will be permanently deleted within 24 hours."</p>
+                <div class="flex items-center gap-2 text-xs text-gray-500 mono">
+                    <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                    <span>Indicators: Urgency, Threat, Link</span>
+                </div>
+            </div>
+
+            <!-- Example 2 -->
+            <div class="bg-gray-900/50 rounded-xl p-6 border border-red-500/30 hover:border-red-500/60 transition-colors cursor-pointer group" onclick="loadExample('prize')">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center">
+                            <i data-lucide="trophy" class="w-5 h-5 text-yellow-400"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold">Lottery/Prize Scam</h3>
+                            <p class="text-sm text-gray-400">Advance fee fraud</p>
+                        </div>
+                    </div>
+                    <span class="px-3 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full mono">MEDIUM RISK</span>
+                </div>
+                <p class="text-sm text-gray-300 mb-3">"Congratulations! You've won $1,000,000 in our annual draw. To claim your prize, please provide your bank details and pay a small processing fee of $100."</p>
+                <div class="flex items-center gap-2 text-xs text-gray-500 mono">
+                    <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                    <span>Indicators: Unexpected prize, Payment request</span>
+                </div>
+            </div>
+
+            <!-- Example 3 -->
+            <div class="bg-gray-900/50 rounded-xl p-6 border border-red-500/30 hover:border-red-500/60 transition-colors cursor-pointer group" onclick="loadExample('ceo')">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                            <i data-lucide="user-cog" class="w-5 h-5 text-purple-400"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold">CEO Fraud / Whaling</h3>
+                            <p class="text-sm text-gray-400">Business email compromise</p>
+                        </div>
+                    </div>
+                    <span class="px-3 py-1 bg-red-500/20 text-red-400 text-xs rounded-full mono">CRITICAL</span>
+                </div>
+                <p class="text-sm text-gray-300 mb-3">"I'm in a meeting right now and need you to process an urgent wire transfer to our new vendor. Please keep this confidential and act immediately. Reply for wire details."</p>
+                <div class="flex items-center gap-2 text-xs text-gray-500 mono">
+                    <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                    <span>Indicators: Authority abuse, Urgency, Secrecy</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="relative z-10 border-t border-gray-800 py-12 px-4 sm:px-6 lg:px-8 bg-black/50">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-2">
+                <i data-lucide="shield" class="w-5 h-5 text-green-400"></i>
+                <span class="font-semibold mono">PHISHGUARD</span>
+            </div>
+            <p class="text-sm text-gray-500">Educational cybersecurity awareness tool • Stay safe online This tool was created by Tshepiso Mofokeng</p>
+            <div class="flex gap-4 text-gray-400">
+                <i data-lucide="github" class="w-5 h-5 hover:text-white cursor-pointer transition-colors"></i>
+                <i data-lucide="twitter" class="w-5 h-5 hover:text-white cursor-pointer transition-colors"></i>
+                <i data-lucide="linkedin" class="w-5 h-5 hover:text-white cursor-pointer transition-colors"></i>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Global variables
+        let currentFile = null;
+        let isAnalyzing = false;
+
+        // DOM Elements
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const previewContainer = document.getElementById('previewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const removeImageBtn = document.getElementById('removeImage');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const analyzeText = document.getElementById('analyzeText');
+        const loadingState = document.getElementById('loadingState');
+        const resultsSection = document.getElementById('resultsSection');
+        const progressBar = document.getElementById('progressBar');
+        const progressPercent = document.getElementById('progressPercent');
+
+        // Event Listeners
+        uploadZone.addEventListener('click', () => fileInput.click());
+        
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+        
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+        
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) handleFile(files[0]);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) handleFile(e.target.files[0]);
+        });
+
+        removeImageBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            resetUpload();
+        });
+
+        analyzeBtn.addEventListener('click', startAnalysis);
+
+        // File Handling
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Please upload an image file');
+                return;
+            }
+            
+            currentFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imagePreview.src = e.target.result;
+                previewContainer.classList.remove('hidden');
+                analyzeBtn.disabled = false;
+                analyzeBtn.classList.remove('cursor-not-allowed', 'text-gray-500');
+                analyzeBtn.classList.add('text-white', 'hover:scale-105');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function resetUpload() {
+            currentFile = null;
+            fileInput.value = '';
+            previewContainer.classList.add('hidden');
+            imagePreview.src = '';
+            analyzeBtn.disabled = true;
+            analyzeBtn.classList.add('cursor-not-allowed', 'text-gray-500');
+            analyzeBtn.classList.remove('text-white', 'hover:scale-105');
+            resultsSection.classList.add('hidden');
+            loadingState.classList.add('hidden');
+        }
+
+        function resetAnalysis() {
+            resetUpload();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // OCR Simulation
+        function simulateOCR(imageData) {
+            // In a real implementation, this would use Tesseract.js
+            // For demo, we'll generate realistic phishing or safe text based on image analysis
+            const phishingTemplates = [
+                `URGENT: Your Account Will Be Suspended
+                
+Dear Customer,
+                
+We have detected unusual activity on your account. Your account will be permanently suspended within 24 hours unless you verify your information immediately.
+                
+Click here to verify your account: http://secure-bank-verify.tk/login
+                
+Best regards,
+Security Team`,
+                `CONGRATULATIONS! You've Won $1,000,000!
+                
+Dear Winner,
+                
+You have been selected as the lucky winner of our annual lottery draw. To claim your prize, please provide your bank details and pay a processing fee of $100.
+                
+Reply immediately with your information.
+                
+Lottery Department`,
+                `Action Required: Invoice Payment Overdue
+                
+Dear User,
+                
+Your recent invoice payment failed. Please click the link below to update your payment information immediately to avoid service interruption.
+                
+Verify Payment: http://paypa1-security.com/update
+                
+Thank you,
+Billing Department`
+            ];
+
+            const safeTemplates = [
+                `Weekly Newsletter - March 2024
+                
+Hi John,
+                
+Here's your weekly update from TechCorp. This week we released new features including improved security settings and dark mode.
+                
+Read more on our blog: https://techcorp.com/blog
+                
+Best,
+The TechCorp Team`,
+                `Meeting Reminder: Project Review
+                
+Hi Team,
+                
+Just a reminder that we have our quarterly project review meeting tomorrow at 2 PM in Conference Room B.
+                
+Please bring your progress reports.
+                
+See you there,
+Sarah`,
+                `Your Amazon Order Has Shipped
+                
+Hello,
+                
+Your order #112-3456789-1234567 has shipped and will arrive on March 8th.
+                
+Track your package: https://amazon.com/orders
+                
+Thanks for shopping with us!`
+            ];
+
+            // Simulate random selection for demo purposes
+            // In real app, this would be actual OCR output
+            const isPhishing = Math.random() > 0.5;
+            const templates = isPhishing ? phishingTemplates : safeTemplates;
+            return templates[Math.floor(Math.random() * templates.length)];
+        }
+
+        // Phishing Detection Logic
+        function analyzePhishing(text) {
+            const indicators = [];
+            const checks = [
+                { pattern: /urgent|immediate|action required|asap|hurry/i, reason: "Uses urgency tactics to pressure quick action" },
+                { pattern: /verify your account|confirm your identity|update your information/i, reason: "Requests sensitive information or verification" },
+                { pattern: /click here|click below|tap here|follow this link/i, reason: "Contains suspicious link wording" },
+                { pattern: /suspended|locked|blocked|restricted|will be deleted/i, reason: "Threatens account suspension or loss" },
+                { pattern: /won|winner|lottery|prize|congratulations|selected/i, reason: "Unexpected prize or lottery notification" },
+                { pattern: /bank.*details|credit card|ssn|password|pin/i, reason: "Requests financial or sensitive personal data" },
+                { pattern: /http:\/\/(?!www\.)|https?:\/\/[0-9]|\.tk\/|\.ml\/|\.ga\//i, reason: "Suspicious URL structure or domain" },
+                { pattern: /dear customer|dear user|dear account holder/i, reason: "Generic greeting instead of personalized" },
+                { pattern: /wire transfer|process payment|send money/i, reason: "Requests money transfer or payment" },
+                { pattern: /confidential|secret|do not share|don't tell/i, reason: "Requests secrecy or confidentiality" }
+            ];
+
+            checks.forEach(check => {
+                if (check.pattern.test(text)) {
+                    indicators.push(check.reason);
+                }
+            });
+
+            // Calculate risk score
+            const riskScore = Math.min(indicators.length * 15 + (text.length < 100 ? 10 : 0), 100);
+            
+            return {
+                isPhishing: indicators.length > 0 || riskScore > 50,
+                riskScore: riskScore,
+                indicators: indicators,
+                text: text
+            };
+        }
+
+        // Analysis Process
+        async function startAnalysis() {
+            if (!currentFile || isAnalyzing) return;
+            
+            isAnalyzing = true;
+            analyzeBtn.disabled = true;
+            loadingState.classList.remove('hidden');
+            resultsSection.classList.add('hidden');
+            
+            // Simulate progress
+            let progress = 0;
+            const steps = ['ocr', 'pattern', 'ml'];
+            let currentStep = 0;
+            
+            const progressInterval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress > 100) progress = 100;
+                
+                progressBar.style.width = progress + '%';
+                progressPercent.textContent = Math.floor(progress) + '%';
+                
+                // Update steps
+                if (progress > 30 && currentStep === 0) {
+                    document.querySelector('[data-step="ocr"]').innerHTML = '<i data-lucide="check-circle" class="w-4 h-4 text-green-400"></i><span>OCR Complete</span>';
+                    lucide.createIcons();
+                    document.querySelector('[data-step="pattern"]').classList.remove('hidden');
+                    currentStep = 1;
+                }
+                if (progress > 60 && currentStep === 1) {
+                    document.querySelector('[data-step="pattern"]').innerHTML = '<i data-lucide="check-circle" class="w-4 h-4 text-green-400"></i><span>Pattern Analysis Complete</span>';
+                    lucide.createIcons();
+                    document.querySelector('[data-step="ml"]').classList.remove('hidden');
+                    currentStep = 2;
+                }
+                
+                if (progress >= 100) {
+                    clearInterval(progressInterval);
+                    setTimeout(showResults, 500);
+                }
+            }, 200);
+        }
+
+        function showResults() {
+            const text = simulateOCR();
+            const analysis = analyzePhishing(text);
+            
+            loadingState.classList.add('hidden');
+            resultsSection.classList.remove('hidden');
+            
+            // Update result card
+            const resultCard = document.getElementById('resultCard');
+            const resultIcon = document.getElementById('resultIcon');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultSubtitle = document.getElementById('resultSubtitle');
+            const resultGradient = document.getElementById('resultGradient');
+            const riskCircle = document.getElementById('riskCircle');
+            const riskScore = document.getElementById('riskScore');
+            
+            // Set risk color
+            let colorClass = '';
+            let gradientClass = '';
+            
+            if (analysis.riskScore >= 70) {
+                colorClass = 'text-red-500';
+                gradientClass = 'from-red-600 to-red-900';
+                resultCard.classList.add('danger-pulse');
+                resultCard.classList.remove('safe-pulse');
+                resultIcon.className = `w-24 h-24 mx-auto mb-4 rounded-full flex items-center justify-center text-4xl bg-red-500/20 ${colorClass}`;
+                resultIcon.innerHTML = '<i data-lucide="shield-alert" class="w-12 h-12"></i>';
+                resultTitle.textContent = 'Likely Phishing';
+                resultSubtitle.textContent = 'Multiple suspicious indicators detected';
+            } else if (analysis.riskScore >= 30) {
+                colorClass = 'text-yellow-500';
+                gradientClass = 'from-yellow-600 to-yellow-900';
+                resultCard.classList.remove('danger-pulse', 'safe-pulse');
+                resultIcon.className = `w-24 h-24 mx-auto mb-4 rounded-full flex items-center justify-center text-4xl bg-yellow-500/20 ${colorClass}`;
+                resultIcon.innerHTML = '<i data-lucide="shield-question" class="w-12 h-12"></i>';
+                resultTitle.textContent = 'Suspicious';
+                resultSubtitle.textContent = 'Some indicators present, proceed with caution';
+            } else {
+                colorClass = 'text-green-500';
+                gradientClass = 'from-green-600 to-green-900';
+                resultCard.classList.add('safe-pulse');
+                resultCard.classList.remove('danger-pulse');
+                resultIcon.className = `w-24 h-24 mx-auto mb-4 rounded-full flex items-center justify-center text-4xl bg-green-500/20 ${colorClass}`;
+                resultIcon.innerHTML = '<i data-lucide="shield-check" class="w-12 h-12"></i>';
+                resultTitle.textContent = 'Probably Safe';
+                resultSubtitle.textContent = 'No significant phishing indicators found';
+            }
+            
+            resultGradient.className = `absolute inset-0 bg-gradient-to-br opacity-10 ${gradientClass}`;
+            
+            // Animate risk score
+            const circumference = 2 * Math.PI * 56; // r=56
+            const offset = circumference - (analysis.riskScore / 100) * circumference;
+            riskCircle.style.strokeDashoffset = offset;
+            riskCircle.setAttribute('class', `transition-all duration-1000 ease-out ${colorClass}`);
+            
+            // Animate number
+            let currentScore = 0;
+            const scoreInterval = setInterval(() => {
+                currentScore += 2;
+                if (currentScore >= analysis.riskScore) {
+                    currentScore = analysis.riskScore;
+                    clearInterval(scoreInterval);
+                }
+                riskScore.textContent = currentScore + '%';
+            }, 20);
+            
+            // Update indicators
+            const indicatorsList = document.getElementById('indicatorsList');
+            if (analysis.indicators.length > 0) {
+                indicatorsList.innerHTML = analysis.indicators.map((indicator, i) => `
+                    <li class="flex items-start gap-3 p-3 bg-red-500/10 rounded-lg border border-red-500/20" style="animation: slideUp 0.3s ease forwards ${i * 0.1}s; opacity: 0">
+                        <i data-lucide="alert-triangle" class="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5"></i>
+                        <span class="text-sm text-gray-300">${indicator}</span>
+                    </li>
+                `).join('');
+            } else {
+                indicatorsList.innerHTML = `
+                    <li class="flex items-center gap-3 p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                        <i data-lucide="check-circle" class="w-5 h-5 text-green-400"></i>
+                        <span class="text-sm text-gray-300">No common phishing indicators detected</span>
+                    </li>
+                `;
+            }
+            
+            // Update extracted text with highlights
+            const extractedTextDiv = document.getElementById('extractedText');
+            let highlightedText = analysis.text;
+            
+            // Highlight suspicious words
+            const suspiciousWords = ['urgent', 'verify', 'click here', 'suspended', 'winner', 'bank details', 'password', 'immediately'];
+            suspiciousWords.forEach(word => {
+                const regex = new RegExp(`(${word})`, 'gi');
+                highlightedText = highlightedText.replace(regex, '<span class="highlight-word">$1</span>');
+            });
+            
+            extractedTextDiv.innerHTML = highlightedText;
+            
+            // Reinitialize icons
+            lucide.createIcons();
+            
+            // Scroll to results
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            
+            isAnalyzing = false;
+            analyzeBtn.disabled = false;
+        }
+
+        // Load Example
+        function loadExample(type) {
+            const examples = {
+                urgent: "URGENT: Your bank account has been suspended. Click here immediately to verify your information or your account will be permanently deleted within 24 hours.",
+                prize: "Congratulations! You've won $1,000,000! To claim your prize, please provide your bank details and pay a processing fee.",
+                ceo: "I'm in a meeting right now and need you to process an urgent wire transfer. Please keep this confidential and act immediately."
+            };
+            
+            // Create a canvas with the text
+            const canvas = document.createElement('canvas');
+            canvas.width = 800;
+            canvas.height = 400;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#f0f0f0';
+            ctx.fillRect(0, 0, 800, 400);
+            ctx.fillStyle = '#333';
+            ctx.font = '20px Arial';
+            ctx.fillText(examples[type], 50, 200);
+            
+            canvas.toBlob((blob) => {
+                const file = new File([blob], `example_${type}.png`, { type: 'image/png' });
+                handleFile(file);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
+
+        function showDetails() {
+            alert('In a full implementation, this would show detailed educational content about the specific phishing techniques detected.');
+        }
+
+        // Binary Rain Animation
+        const canvas = document.getElementById('binaryRain');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        const columns = Math.floor(canvas.width / 20);
+        const drops = new Array(columns).fill(1);
+        
+        function drawBinaryRain() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#0f0';
+            ctx.font = '15px monospace';
+            
+            for (let i = 0; i < drops.length; i++) {
+                const text = Math.random() > 0.5 ? '1' : '0';
+                ctx.fillText(text, i * 20, drops[i] * 20);
+                
+                if (drops[i] * 20 > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+        
+        setInterval(drawBinaryRain, 50);
+        
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // Create floating particles
+        function createParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 10 + 's';
+                particle.style.animationDuration = (10 + Math.random() * 10) + 's';
+                container.appendChild(particle);
+            }
+        }
+        createParticles();
+
+        
+        const text = "Upload an email screenshot and let our AI analyze it for phishing indicators";
+        const typingElement = document.getElementById('typingText');
+        let i = 0;
+        
+        function typeWriter() {
+            if (i < text.length) {
+                typingElement.textContent = text.substring(0, i + 1);
+                i++;
+                setTimeout(typeWriter, 50);
+            }
+        }
+        
+        
+        setTimeout(typeWriter, 500);
+    </script>
+</body>
+</html>
